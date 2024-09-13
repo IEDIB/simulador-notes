@@ -28,6 +28,12 @@ Triau el model d'avaluació de la vostra matèria:
 
 ```wg=20```: El pes de l'examen de gener en la convocatòria de maig és del 20%. El pes de l'examen de maig és 100-wg.
 
+```rec=<opcio>```: Estratègia de recuperació de l'examen de gener en cas que ```m != parcials```. Si no s'especifica cap estratègia simplement es fan es percentatges wg  / 100-wg especificats per als dos examens. 
+
+- ```rec=g5``` Es posa un 5 a l'examen de gener si aprova el de maig. Sempre es fan els percentages.
+- ```rec=mm``` Es posa la nota de l'examen de maig si és major que la de gener. En altre cas es fan els percentatges.
+
+
 ## Project setup
 ```
 npm install

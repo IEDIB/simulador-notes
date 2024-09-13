@@ -26,6 +26,7 @@
           :min="0"
           :max="10"
           :showButtons="false"
+          @update:modelValue="onGradeChange($event)"
         />
         <Slider
           v-model="e_online"
@@ -50,6 +51,7 @@
             :min="0"
             :max="10"
             :showButtons="false"
+            @update:modelValue="onGradeChange($event)"
           />
           <Slider
             v-model="e_gener"
@@ -70,6 +72,7 @@
             :min="0"
             :max="10"
             :showButtons="false"
+            @update:modelValue="onGradeChange($event)"
           />
           <Slider
             v-model="e_maig"
@@ -92,6 +95,7 @@
             :min="0"
             :max="10"
             :showButtons="false"
+            @update:modelValue="onGradeChange($event)"
           />
           <Slider
             v-model="e_juny"
@@ -136,6 +140,7 @@ export default {
       wJuny: 100,
       wGenerDefault: 20,
       comentariExamenMaig : '',
+      rec: '',
       selectedAva: { name: "Gener", value: 1 },
       avaluacions: [
         { name: "Gener", value: 1 },
@@ -151,7 +156,7 @@ export default {
     // Pes relatiu dels examens vs activitats online
     if (this.urlParams.get("we")) {
       try {
-        var value = parseInt(this.urlParams.get("we"));
+        let value = parseInt(this.urlParams.get("we"));
         if (value > 50 && value <= 100) {
           this.wexam = value;
           this.wonline = 100 - value;
@@ -173,9 +178,21 @@ export default {
     // Pes relatiu de l'examen de gener vs maig
     if (this.urlParams.get("wg")) {
       try {
-        var value = parseInt(this.urlParams.get("wg"));
+        let value = parseInt(this.urlParams.get("wg"));
         if (value > 10 && value <= 100) {
           this.wGenerDefault = value;
+        }
+      } catch (ex) {
+        console.error(ex);
+      }
+    }
+
+    // Aplica algun model de recuperació?
+    if (this.urlParams.get("rec")) {
+      try {
+        let value = this.urlParams.get("rec");
+        if (value === "g5" || value === "mm") {
+          this.rec = value;
         }
       } catch (ex) {
         console.error(ex);
@@ -194,7 +211,7 @@ export default {
       });
     },
     onAvaChange($event) {
-      var ava = this.selectedAva.value;
+      let ava = this.selectedAva.value;
 
       this.showEGener = ava < 3;
       this.showEMaig = ava == 2;
@@ -212,17 +229,17 @@ export default {
       this.onGradeChange();
     },
     onGradeChange($event) {
-      var ava = this.selectedAva.value;
+      let ava = this.selectedAva.value;
       if (ava == 1) {
         this.yourGrade = (
           0.01 *
           (this.wexam * this.e_gener + this.wonline * this.e_online)
         ).toFixed(1);
       } else if (ava == 2) {
-        var nexams = null;
+        let nexams = null;
         if (this.isParcials) {
           // Obté la nota de gener
-          var butlletiGener = Math.round(
+          let butlletiGener = Math.round(
             0.01 * (this.wexam * this.e_gener + this.wonline * this.e_online)
           ).toFixed(0);
           if (butlletiGener >= 5) {
@@ -236,8 +253,18 @@ export default {
             nexams = this.e_maig;
           }
         } else {
-          nexams =
-            0.01 * (this.wGener * this.e_gener + this.wMaig * this.e_maig);
+          if (this.rec === "g5" && this.e_maig >= 5) {
+            // Estratègia de recuperació de gener amb un 5
+            nexams =
+            0.01 * (this.wGener * 5.0 + this.wMaig * this.e_maig);
+          } else if(this.rec === "mm" && this.e_maig > this.e_gener) {
+            // Estratègia de recuperació de gener amb la mateixa nota de maig
+            nexams = this.e_maig;
+          } else {
+            // Cap estratègia -- poderació simple
+            nexams =
+              0.01 * (this.wGener * this.e_gener + this.wMaig * this.e_maig);
+          }
         }
         this.yourGrade = (
           0.01 *
