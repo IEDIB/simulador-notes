@@ -13,6 +13,7 @@ import Panel from 'primevue/panel';
 import InputNumber from 'primevue/inputnumber';
 import Toast from 'primevue/toast';
 import ToastService from 'primevue/toastservice';
+import Message from 'primevue/message';
 
 import 'primevue/resources/themes/saga-blue/theme.css';
 import 'primevue/resources/primevue.min.css';
@@ -32,5 +33,6 @@ app.component('Toast', Toast);
 app.component('Card', Card);
 app.component('InputNumber', InputNumber);
 app.component('Badge', Badge);
+app.component('Message', Message);
 
 app.mount('#app')

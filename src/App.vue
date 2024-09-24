@@ -60,6 +60,10 @@
             :max="10"
             @change="onGradeChange($event)"
           />
+          <div v-if="e_gener < ne_min && selectedAva.value === 1">
+          <br>
+          <Message severity="error">Cal una nota mínima d'examen de {{ne_min}} per poder comptar les activitats en línia.</Message>
+          </div>
         </Fieldset>
         <Fieldset v-if="showEMaig">
           <template #legend> {{ wMaig }}% Nota examen maig <sup  v-if="isParcials">*</sup></template>
@@ -81,6 +85,10 @@
             :max="10"
             @change="onGradeChange($event)"
           />
+          <div v-if="e_maig < ne_min">
+          <br>
+          <Message severity="error">Cal una nota mínima d'examen de {{ne_min}} per poder comptar les activitats en línia.</Message>
+          </div>
           <br>
           <small v-if="isParcials"><sup>*</sup>{{comentariExamenMaig}}</small>
         </Fieldset>
@@ -104,6 +112,10 @@
             :max="10"
             @change="onGradeChange($event)"
           />
+          <div v-if="e_juny < ne_min">
+          <br>
+          <Message severity="error">Cal una nota mínima d'examen de {{ne_min}} per poder comptar les activitats en línia.</Message>
+          </div>
         </Fieldset>
       </Panel>
       <Card>
@@ -119,6 +131,8 @@
 </template>
 
 <script>
+import { GradeWeighter, MinExamGradeDecorator, RecoveryStrategyDecorator } from "./decorators";
+
 /* eslint-disable */
 export default {
   data() {
@@ -128,6 +142,7 @@ export default {
       yourGrade: 0,
       wexam: 70,
       wonline: 30,
+      ne_min: 0,
       e_online: 5,
       e_gener: 5,
       e_maig: 5,
@@ -199,6 +214,16 @@ export default {
       }
     }
 
+    // Aplica una nota mínima d'exàmens?
+    if (this.urlParams.get("emin")) {
+      try {
+        let value = this.urlParams.get("emin");
+        this.ne_min = parseFloat(value);
+      } catch (ex) {
+        console.error(ex);
+      }
+    }
+
     this.greet();
     this.onGradeChange();
   },
@@ -229,52 +254,41 @@ export default {
       this.onGradeChange();
     },
     onGradeChange($event) {
+      const weightExamWork = new GradeWeighter(this.wexam, this.wonline);
+      const weightExamWorkDecorated = new MinExamGradeDecorator(this.ne_min, weightExamWork);
+      const avaWeighter = new GradeWeighter(this.wGener, this.wMaig);
+      const avaWeighterRecoveryStrategy = new RecoveryStrategyDecorator(this.rec, avaWeighter);
+
       let ava = this.selectedAva.value;
+      const notaGener = weightExamWorkDecorated.eval(this.e_gener, this.e_online);
       if (ava == 1) {
-        this.yourGrade = (
-          0.01 *
-          (this.wexam * this.e_gener + this.wonline * this.e_online)
-        ).toFixed(1);
+        /** CAS EXAMEN GENER */
+        this.yourGrade = notaGener.toFixed(1);
       } else if (ava == 2) {
         let nexams = null;
+        /** CAS PER PARCIALS */
         if (this.isParcials) {
           // Obté la nota de gener
-          let butlletiGener = Math.round(
-            0.01 * (this.wexam * this.e_gener + this.wonline * this.e_online)
-          ).toFixed(0);
+          let butlletiGener = Math.round(notaGener).toFixed(0);
           if (butlletiGener >= 5) {
-            //Fa la proporció
-            nexams =
-              0.01 * (this.wGener * this.e_gener + this.wMaig * this.e_maig);
+            // Fa la proporció
+            nexams = avaWeighter.eval(this.e_gener, this.e_maig);
             this.comentariExamenMaig = 'La 1a avaluació està aprovada amb un '+butlletiGener + ', l\'examen de maig és un parcial. Es fa la mitjana dels dos exàmens.';
           } else {
-            //Només examen maig
+            // Només examen maig
             this.comentariExamenMaig = 'La 1a avaluació està supesa amb un '+butlletiGener + ', l\'examen de maig és un global. La nota de l\'examen de gener no compta.';
             nexams = this.e_maig;
           }
         } else {
-          if (this.rec === "g5" && this.e_maig >= 5) {
-            // Estratègia de recuperació de gener amb un 5
-            nexams =
-            0.01 * (this.wGener * 5.0 + this.wMaig * this.e_maig);
-          } else if(this.rec === "mm" && this.e_maig > this.e_gener) {
-            // Estratègia de recuperació de gener amb la mateixa nota de maig
-            nexams = this.e_maig;
-          } else {
-            // Cap estratègia -- poderació simple
-            nexams =
-              0.01 * (this.wGener * this.e_gener + this.wMaig * this.e_maig);
-          }
+          /** CAS PER PONDERACIÓ DE AVALUACIONS */
+          nexams = avaWeighterRecoveryStrategy.eval(this.e_gener, this.e_maig);
         }
-        this.yourGrade = (
-          0.01 *
-          (this.wexam * nexams + this.wonline * this.e_online)
-        ).toFixed(1);
+
+        this.yourGrade = weightExamWorkDecorated.eval(nexams, this.e_online).toFixed(1);
+       
       } else if (ava == 3) {
-        this.yourGrade = (
-          0.01 *
-          (this.wexam * this.e_juny + this.wonline * this.e_online)
-        ).toFixed(1);
+        /*** CAS DE LA EXTRAORDINÀRIA */
+        this.yourGrade = weightExamWorkDecorated.eval(this.e_juny, this.e_online).toFixed(1);
       }
     },
   },

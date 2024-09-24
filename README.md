@@ -33,6 +33,8 @@ Triau el model d'avaluació de la vostra matèria:
 - ```rec=g5``` Es posa un 5 a l'examen de gener si aprova el de maig. Sempre es fan els percentages.
 - ```rec=mm``` Es posa la nota de l'examen de maig si és major que la de gener. En altre cas es fan els percentatges.
 
+```emin=3.5``` Estableix una nota mínima d'exàmens perquè es puguin comptar les activitats en línia.
+
 
 ## Project setup
 ```
